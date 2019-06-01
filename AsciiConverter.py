@@ -1,6 +1,5 @@
-from PIL import Image
 import bisect
-
+from PIL import Image
 
 class AsciiConverter:
     glyphs = " `'^,~*)/{}[?+iclr&utIzx$knhbdXqmQ#BMW"
@@ -10,9 +9,13 @@ class AsciiConverter:
     default_charset = (glyphs, lumens)
 
     def __init__(self, path: str):
+        self.invert_flag = False
+        self.alpha_flag = False
+        self.mode_type = "luminance"
         self.im = Image.open(path)
         self.raw_data = self.im.getdata()
-        self.glyphs_data = self.data_to_chars_dithered(False, False, "luminance")
+        self.glyphs_data = self.data_to_chars_dithered(
+            self.invert_flag, self.alpha_flag, self.mode_type)
 
     @staticmethod
     def flatten_tuples(data: list, invert: bool, alpha: bool, mode: str) -> list:
@@ -68,11 +71,13 @@ class AsciiConverter:
         for x in range(0, len(data[0])):
             for y in range(0, len(data)):
                 index = bisect.bisect_left(vals, min(data[y][x], 255))
+
                 error = data[y][x] - vals[index]
                 if abs(data[y][x] - vals[max(index - 1, 0)]) < abs(error):
                     index -= 1
                     error = data[y][x] - vals[index]
                 err_arr[y][x] = '', int(error)
+
                 if x < (len(data[0]) - 1):
                     data[y][x + 1] = data[y][x + 1] + error * 7 / 16
                 if x > 0 and y < (len(data) - 1):
@@ -81,11 +86,22 @@ class AsciiConverter:
                     data[y + 1][x] = data[y + 1][x] + error * 5 / 16
                 if x < (len(data[0]) - 1) and y < (len(data) - 1):
                     data[y + 1][x + 1] = data[y + 1][x + 1] + error * 1 / 16
+
                 chars_arr[y][x] = chars[index] * 2
         return chars_arr
 
+    def resize_image(self, new_width: int, new_height: int, mode):
+        self.im = self.im.resize((new_width, new_height), mode)
+        self.raw_data = self.im.getdata()
+        self.glyphs_data = self.data_to_chars_dithered(
+            self.invert_flag, self.alpha_flag, self.mode_type)
+
     def recalculate_image(self, invert: bool, alpha: bool, mode: str):
-        self.glyphs_data = self.data_to_chars_dithered(invert, alpha, mode)
+        self.invert_flag = invert
+        self.alpha_flag = alpha
+        self.mode_type = mode
+        self.glyphs_data = self.data_to_chars_dithered(
+            self.invert_flag, self.alpha_flag, self.mode_type)
 
     def list_im_info(self) -> None:
         print("width", self.im.width)
@@ -105,8 +121,5 @@ class AsciiConverter:
 
 
 a = AsciiConverter("face3.jpg")
-a.list_glyph_frequencies()
-a.display_image('')
-a.recalculate_image(True, False, "luminance")
-a.list_glyph_frequencies()
+a.resize_image(90, 90, Image.LANCZOS)
 a.display_image('')
