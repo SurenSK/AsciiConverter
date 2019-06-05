@@ -1,5 +1,7 @@
 import bisect
 from PIL import Image
+from typing import List
+from typing import Tuple
 
 class AsciiConverter:
     glyphs = " `'^,~*)/{}[?+iclr&utIzx$knhbdXqmQ#BMW"
@@ -18,7 +20,7 @@ class AsciiConverter:
             self.invert_flag, self.alpha_flag, self.mode_type)
 
     @staticmethod
-    def flatten_tuples(data: list, invert: bool, alpha: bool, mode: str) -> list:
+    def flatten_tuples(data: List[Tuple[int, int, int]], invert: bool, alpha: bool, mode: str) -> List[int]:
         lum_list = []
         for pixel in data:
             r, g, b = pixel[0], pixel[1], pixel[2]
@@ -47,6 +49,9 @@ class AsciiConverter:
             lum = 255 - lum if invert is True else lum
 
             lum_list.append(lum)
+
+        print(type(lum_list))
+        print(type(lum_list[0]))
         return lum_list
 
     @staticmethod
@@ -120,6 +125,6 @@ class AsciiConverter:
             print()
 
 
-a = AsciiConverter("face3.jpg")
-a.resize_image(90, 90, Image.LANCZOS)
-a.display_image('')
+face = AsciiConverter("face3.jpg")
+face.resize_image(90, 90, Image.LANCZOS)
+face.display_image('')
