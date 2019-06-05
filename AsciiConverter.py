@@ -1,7 +1,6 @@
 import bisect
 from PIL import Image
 from typing import List
-from typing import Tuple
 
 class AsciiConverter:
     glyphs = " `'^,~*)/{}[?+iclr&utIzx$knhbdXqmQ#BMW"
@@ -20,11 +19,12 @@ class AsciiConverter:
             self.invert_flag, self.alpha_flag, self.mode_type)
 
     @staticmethod
-    def flatten_tuples(data: List[Tuple[int, int, int]], invert: bool, alpha: bool, mode: str) -> List[int]:
+    def flatten_tuples(data: list, invert: bool, alpha: bool, mode: str) -> List[int]:
         lum_list = []
         for pixel in data:
             r, g, b = pixel[0], pixel[1], pixel[2]
             a = 1 if len(pixel) == 3 else pixel[3] / 255
+            lum = 0
 
             if mode == "luminance":
                 lum = round((0.2126 * r + 0.7152 * g + 0.0722 * b), 4)
@@ -50,12 +50,10 @@ class AsciiConverter:
 
             lum_list.append(lum)
 
-        print(type(lum_list))
-        print(type(lum_list[0]))
         return lum_list
 
     @staticmethod
-    def list_to_2d(data_flat: list, height: int, width: int) -> list:
+    def list_to_2d(data_flat: List[int], height: int, width: int) -> List[List[int]]:
         array_2d = []
         for x in range(0, height):
             row = []
@@ -64,13 +62,13 @@ class AsciiConverter:
             array_2d.append(row)
         return array_2d
 
-    def data_to_chars_dithered(self, invert: bool, alpha: bool, mode: str) -> list:
+    def data_to_chars_dithered(self, invert: bool, alpha: bool, mode: str) -> List[List[str]]:
         lum_data = AsciiConverter.flatten_tuples(self.raw_data, invert, alpha, mode)
         data = AsciiConverter.list_to_2d(lum_data, self.im.height, self.im.width)
         chars = AsciiConverter.default_charset[0]
         vals = AsciiConverter.default_charset[1]
         vals[:] = [(val * (255 / max(vals))) for val in vals]
-        chars_arr = [[0 for x in range(len(data[0]))] for y in range(len(data))]
+        chars_arr = [["" for x in range(len(data[0]))] for y in range(len(data))]
         err_arr = [[0 for x in range(len(data[0]))] for y in range(len(data))]
 
         for x in range(0, len(data[0])):
@@ -81,7 +79,7 @@ class AsciiConverter:
                 if abs(data[y][x] - vals[max(index - 1, 0)]) < abs(error):
                     index -= 1
                     error = data[y][x] - vals[index]
-                err_arr[y][x] = '', int(error)
+                err_arr[y][x] = int(error)
 
                 if x < (len(data[0]) - 1):
                     data[y][x + 1] = data[y][x + 1] + error * 7 / 16
@@ -92,7 +90,8 @@ class AsciiConverter:
                 if x < (len(data[0]) - 1) and y < (len(data) - 1):
                     data[y + 1][x + 1] = data[y + 1][x + 1] + error * 1 / 16
 
-                chars_arr[y][x] = chars[index] * 2
+                chars_arr[y][x] = chars[index]*2
+
         return chars_arr
 
     def resize_image(self, new_width: int, new_height: int, mode):
