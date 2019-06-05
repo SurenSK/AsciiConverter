@@ -2,6 +2,7 @@ import bisect
 from PIL import Image
 from typing import List
 
+
 class AsciiConverter:
     glyphs = " `'^,~*)/{}[?+iclr&utIzx$knhbdXqmQ#BMW"
     lumens = [3, 8, 9, 11, 12, 14, 16, 17, 20, 21, 22, 23, 24, 25,
