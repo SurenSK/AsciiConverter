@@ -1,6 +1,7 @@
 import bisect
 from PIL import Image
 from typing import List
+import time
 
 
 class AsciiConverter:
@@ -66,32 +67,34 @@ class AsciiConverter:
     def data_to_chars_dithered(self, invert: bool, alpha: bool, mode: str) -> List[List[str]]:
         lum_data = AsciiConverter.flatten_tuples(self.raw_data, invert, alpha, mode)
         data = AsciiConverter.list_to_2d(lum_data, self.im.height, self.im.width)
-        chars = AsciiConverter.default_charset[0]
         vals = AsciiConverter.default_charset[1]
         vals[:] = [(val * (255 / max(vals))) for val in vals]
-        chars_arr = [["" for x in range(len(data[0]))] for y in range(len(data))]
-        err_arr = [[0 for x in range(len(data[0]))] for y in range(len(data))]
+        chars_arr = [["" for x in range(self.im.width)] for y in range(self.im.height)]
+        err_arr = [[0 for x in row] for row in chars_arr]
 
-        for x in range(0, len(data[0])):
-            for y in range(0, len(data)):
+        for x in range(0, self.im.width):
+            pos_x = x + 1
+            neg_x = x - 1
+            for y in range(0, self.im.height):
+                pos_y = y + 1
                 index = bisect.bisect_left(vals, min(data[y][x], 255))
-
-                error = data[y][x] - vals[index]
+                error = (data[y][x] - vals[index])
                 if abs(data[y][x] - vals[max(index - 1, 0)]) < abs(error):
                     index -= 1
-                    error = data[y][x] - vals[index]
-                err_arr[y][x] = int(error)
+                    error = (data[y][x] - vals[index])
+                err_arr[y][x] = error
+                error /= 16
 
-                if x < (len(data[0]) - 1):
-                    data[y][x + 1] = data[y][x + 1] + error * 7 / 16
-                if x > 0 and y < (len(data) - 1):
-                    data[y + 1][x - 1] = data[y + 1][x - 1] + error * 3 / 16
-                if y < (len(data) - 1):
-                    data[y + 1][x] = data[y + 1][x] + error * 5 / 16
-                if x < (len(data[0]) - 1) and y < (len(data) - 1):
-                    data[y + 1][x + 1] = data[y + 1][x + 1] + error * 1 / 16
+                if pos_x < self.im.width:
+                    data[y][pos_x] = data[y][pos_x] + (error * 7)
+                if x > 0 and pos_y < self.im.height:
+                    data[pos_y][neg_x] = data[pos_y][neg_x] + (error * 3)
+                if pos_y < self.im.height:
+                    data[pos_y][x] = data[pos_y][x] + (error * 5)
+                if pos_x < self.im.width and pos_y < self.im.height:
+                    data[pos_y][pos_x] = data[pos_y][pos_x] + error
 
-                chars_arr[y][x] = chars[index]*2
+                chars_arr[y][x] = AsciiConverter.default_charset[0][index]
 
         return chars_arr
 
@@ -119,12 +122,18 @@ class AsciiConverter:
             print(c + c, sum(row.count(c + c) for row in self.glyphs_data))
 
     def display_image(self, end_char: str) -> None:
+        img_str = ""
         for row in self.glyphs_data:
             for elem in row:
-                print(elem, end=end_char)
-            print()
+                img_str += elem*2
+            img_str += "\n\r"
+        print(img_str)
 
 
+time1 = time.time()
 face = AsciiConverter("face3.jpg")
-face.resize_image(90, 90, Image.LANCZOS)
+time2 = time.time()
+print(time2 - time1)
 face.display_image('')
+time2 = time.time()
+print(time2 - time1)
